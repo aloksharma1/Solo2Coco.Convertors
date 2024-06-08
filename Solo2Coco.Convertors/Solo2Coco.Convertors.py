@@ -1,16 +1,13 @@
-
 import os
 import zipfile
 import json
 import numpy as np
-from PIL import Image, ImageDraw, ImageColor
+from PIL import Image, ImageDraw, ImageFont
 from tkinter import Tk, filedialog, ttk, messagebox, StringVar, Radiobutton, Button, Label, Frame
 from shutil import copy2
 from concurrent.futures import ThreadPoolExecutor
 import threading
 import cv2
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 
 # Define a list of colors for different classes
 COLORS = [
@@ -211,12 +208,25 @@ def load_and_visualize():
         Label(class_frame, text=cat['name'], bg=color, width=20).pack(anchor='w', padx=5, pady=2)
 
     class_window.update()
+
+    try:
+        font = ImageFont.truetype("arial.ttf", 15)
+    except IOError:
+        font = ImageFont.load_default()
     
     for anno in image_annotations:
         color = category_colors[anno['category_id']]
+        
+        # Draw polygons
         for seg in anno['segmentation']:
             poly = np.array(seg).reshape((len(seg) // 2, 2))
             draw.polygon([tuple(p) for p in poly], outline=color)
+        
+        # Draw bounding boxes
+        bbox = anno['bbox']
+        draw.rectangle([bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]], outline=color, width=2)
+        label = next(cat['name'] for cat in annotations['categories'] if cat['id'] == anno['category_id'])
+        draw.text((bbox[0], bbox[1]), label, fill=color, font=font)
     
     image.show()
 
@@ -233,7 +243,6 @@ def start_conversion():
 
         progress_window = Tk()
         progress_window.title("Converting SOLO to COCO")
-        progress_bar = ttk
         progress_bar = ttk.Progressbar(progress_window, orient="horizontal", length=300, mode="determinate")
         progress_bar.pack(pady=20)
 
